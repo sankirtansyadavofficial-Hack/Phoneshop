@@ -1,0 +1,49 @@
+System Architecture & UI/UX Design Specification
+Project Title: OmniHub 3D — Premium Hybrid Tech Retail, Cyber Cafe, & Cloud Print Ecosystem
+Target Platforms: Cross-Platform Responsive (PC Desktop WebGL + Mobile Progressive Web App with 60 FPS touch optimization)
+Design Aesthetic: Cyber-Minimalism, High-End Tech Retail (Apple/Realme inspired glassmorphism mixed with futuristic glowing LED vector lines)
+
+1. 3D Scene Architecture & Layout
+Create a fully interactive, lightweight 3D canvas environment using WebGL (Three.js / React Three Fiber / Spline). The scene features a singular, hyper-modern physical storefront split into three interactive sectors via dynamic camera animations:
+
+Sector A (The Device Showroom): An ultra-clean, minimalist showroom floor featuring metallic floating podiums. Each podium displays a premium, interactive 3D model of a smartphone or tech accessory. Includes 360-degree rotation, color configurators, and real-time reflection shifts.
+
+Sector B (The Cloud Print Desk): A sleek, illuminated document kiosk. Features an interactive drop-zone where users can drag and drop digital files (PDF, PNG) into a stylized glowing slot representing the Xerox/Scanning services.
+
+Sector C (The Cyber Console): A terminal matrix showing high-fidelity workstations. Clicking a workstation opens the digital services portal (online applications, utility tracking, internet slot booking).
+
+2. Page & Navigation Structure
+Hero / Interactive Map (Landing): The entry point is a wide-angle view of the entire shop. Users can click on a sector to smoothly interpolate the camera position (gsap camera panning) directly to that workflow.
+
+The Mobile Hub (E-Commerce Page):
+
+High-end filtering for smartphone categories, budget brackets, and accessory types.
+
+3D view toggles alongside traditional 2D grid fallbacks optimized for fast mobile rendering.
+
+"Check Store Availability" real-time inventory indicator with a direct WhatsApp order integration.
+
+The Quick-Xerox Engine (Service Page):
+
+A step-by-step file uploading portal (Print, Scan, Lamination, Passport Photo setup).
+
+A custom price calculator tracking page count, black-and-white vs. color, and paper density.
+
+Generates a unique QR code for "Express Pick-up" at the counter.
+
+The Cyber & Digital Desk (Portal Page):
+
+Interactive dashboard listing active online services: Government Job Form Fillings, University Admissions, Passport Applications, and Utility Bill Payments.
+
+Secure file-uploading slots for supporting identification documents.
+
+Live booking system for reserving high-speed computer terminals by the hour.
+
+3. Technical Constraints & Performance Optimizations
+Asset Control: All 3D models must be exported as highly compressed .glb / .gltf assets using mesh compression (Draco Compression) to ensure low network latency on 4G/5G mobile devices. Max asset allocation budget is 4MB for the initial scene load.
+
+Mobile Responsiveness: Fall back to an intuitive vertical scrolling architecture on mobile viewports. Change mouse pointer OrbitControls to single-finger touch drag gestures for 3D exploration, disabling camera tracking when the user scrolls past text blocks to avoid layout locking.
+
+Lighting & Shaders: Implement baked ambient occlusion maps to reduce real-time rendering overhead. Limit dynamic lights to one main directional light (sun/neon accent) and soft point lights near interaction nodes. Use custom glassmorphism GLSL fragment shaders for UI overlays.
+
+Fallback Implementation: If the client browser does not support WebGL or encounters a rendering exception, seamlessly switch the 3D hero wrapper into a high-performance 2D CSS grid with dynamic CSS-based card hover animations.
