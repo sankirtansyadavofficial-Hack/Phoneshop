@@ -239,7 +239,6 @@ export function ScrollExplode() {
 
       // Map to floating-point frame index for crossfade
       const frameFloat = p * (TOTAL_FRAMES - 1);
-      const roundedFrame = Math.round(frameFloat);
 
       // Draw frame (with crossfade for sub-frame smoothness)
       if (Math.abs(frameFloat - lastDrawnFrame.current) > 0.05) {
