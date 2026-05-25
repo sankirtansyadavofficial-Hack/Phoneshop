@@ -107,10 +107,10 @@ export function MinimalFooter() {
 					<div className="col-span-6 flex flex-col gap-5 md:col-span-4">
 						<a href="#" className="flex items-center gap-2 text-white font-bold tracking-wide">
 							<Layers className="size-6 text-blue-500 animate-pulse-slow" />
-							<span>OMNIHUB <span className="text-blue-500 font-mono text-xs">3D</span></span>
+							<span>PKG <span className="text-blue-500 font-mono text-xs">Shop</span></span>
 						</a>
 						<p className="text-gray-400 max-w-sm text-sm text-balance">
-							Premium Hybrid Tech Retail showroom, glowing Cloud Print desk kiosk, and high-fidelity cyber Terminal consoles in a unified ecosystem.
+							Your one-stop phone accessories shop — smartphones, screen guards, headphones, chargers, cables, and Cloud Print & Cyber Terminal services.
 						</p>
 						<div className="flex gap-2">
 							{socialLinks.map((item, i) => (
@@ -163,8 +163,14 @@ export function MinimalFooter() {
 				</div>
 				
 				<div className="border-t border-white/5 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between text-gray-500 text-xs">
-					<p>© {year} OmniHub 3D Ecosystem. All rights reserved.</p>
-					<p className="mt-2 md:mt-0">Designed in Cyber-Minimalism.</p>
+					<p>© {year} PKG Shop. All rights reserved.</p>
+					<div className="flex items-center gap-4 mt-2 md:mt-0">
+						<a href="/admin" className="hover:text-white transition-colors duration-200 flex items-center gap-1.5">
+							<svg className="size-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+							<span>Admin Panel</span>
+						</a>
+						<p>Designed in Cyber-Minimalism.</p>
+					</div>
 				</div>
 			</div>
 		</footer>

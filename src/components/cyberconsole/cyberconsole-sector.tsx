@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { saveTerminalBooking, generateTerminalBookingId } from '@/lib/store';
 
 type Terminal = {
   id: number;
@@ -49,7 +50,7 @@ export function CyberConsoleSector() {
   const [customerName, setCustomerName] = useState('');
   const [bookingHours, setBookingHours] = useState(1);
 
-  const RATE_PER_HOUR = 2.00; // $2.00 per hour
+  const RATE_PER_HOUR = 40; // ₹40 per hour
 
   const handleBookTerminal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +73,18 @@ export function CyberConsoleSector() {
       particleCount: 120,
       spread: 80,
       origin: { y: 0.6 }
+    });
+
+    // Save to localStorage for admin dashboard
+    saveTerminalBooking({
+      id: generateTerminalBookingId(),
+      timestamp: Date.now(),
+      customerName,
+      terminalId: selectedTerminal.id,
+      terminalName: selectedTerminal.name,
+      hours: bookingHours,
+      totalCost: bookingHours * RATE_PER_HOUR,
+      status: 'active',
     });
 
     setSelectedTerminal(null);
@@ -125,7 +138,7 @@ export function CyberConsoleSector() {
                     <Monitor className="size-5 text-blue-500" />
                     <span>PC Reservation Matrix</span>
                   </CardTitle>
-                  <span className="text-xs text-gray-500">Rate: ${RATE_PER_HOUR.toFixed(2)}/hour</span>
+                  <span className="text-xs text-gray-500">Rate: ₹{RATE_PER_HOUR}/hour</span>
                 </div>
                 <CardDescription>
                   Click on any available workstation node to open booking schedules.
@@ -208,7 +221,7 @@ export function CyberConsoleSector() {
                             className="bg-white/[0.03] border border-white/10 rounded-xl p-1.5 text-xs text-white"
                           >
                             {[1, 2, 4, 8].map(h => (
-                              <option key={h} value={h} className="bg-slate-950">{h} hour{h > 1 ? 's' : ''} - ${(h * RATE_PER_HOUR).toFixed(2)}</option>
+                              <option key={h} value={h} className="bg-slate-950">{h} hour{h > 1 ? 's' : ''} - ₹{(h * RATE_PER_HOUR)}</option>
                             ))}
                           </select>
                         </div>

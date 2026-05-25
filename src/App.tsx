@@ -63,13 +63,13 @@ function App() {
             <>
               A Premium Hybrid
               <br />
-              <span className="text-blue-500">Tech retail & cafe core.</span>
+               <span className="text-blue-500">Tech retail & accessories.</span>
             </>
           }
           description={
             <>
-              OmniHub 3D bridges the gap between hardware retailing and digital convenience. 
-              Explore custom devices, scan high-speed cloud print orders, and book premium internet workstation slots under a singular glowing ecosystem.
+               PKG Shop bridges the gap between hardware retailing and digital convenience. 
+               Browse phones, accessories, chargers, cables, scan high-speed cloud print orders, and book premium internet workstation slots.
             </>
           }
           primaryImageSrc="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800"

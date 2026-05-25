@@ -163,7 +163,7 @@ export function HeroSection({ theme }: { theme: 'light' | 'dark' }) {
                     : 'bg-gradient-to-br from-white via-slate-200 to-slate-400',
                   'text-3xl md:text-4xl lg:text-5xl font-extrabold bg-clip-text text-transparent leading-[1.15] tracking-tight'
                 )}>
-                  OmniHub <span className="text-blue-500">3D</span>
+                  PKG <span className="text-blue-500">Shop</span>
                 </h1>
                 
                 {/* Description */}
@@ -171,7 +171,7 @@ export function HeroSection({ theme }: { theme: 'light' | 'dark' }) {
                   theme === 'light' ? 'text-slate-600/90' : 'text-gray-400/90',
                   'text-sm leading-relaxed font-normal'
                 )}>
-                  Your flagship hybrid Tech Retail showroom, Cloud Print desk, and cyber workstation ecosystem — all under one roof.
+                  Your one-stop Tech Retail destination — smartphones, accessories, Cloud Print desk, and cyber workstation ecosystem — all under one roof.
                 </p>
                 
                 {/* CTA Button row */}
@@ -243,7 +243,7 @@ export function HeroSection({ theme }: { theme: 'light' | 'dark' }) {
                 theme === 'light' ? 'text-slate-900' : 'text-white',
                 'text-4xl md:text-6xl font-extrabold leading-tight'
               )}>
-                OmniHub <span className="text-blue-500">3D</span> Ecosystem
+                PKG <span className="text-blue-500">Shop</span> Ecosystem
               </h1>
               <p className={cn(theme === 'light' ? 'text-slate-600' : 'text-gray-400', "text-sm md:text-base leading-relaxed")}>
                 Experience high-performance cyber-minimalism layout grids optimized for low-latency network loading and smooth viewport scanning.

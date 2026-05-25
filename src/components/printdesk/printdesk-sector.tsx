@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
+import { savePrintOrder, generatePrintOrderId } from '@/lib/store';
 
 type PrintJob = {
   name: string;
@@ -24,17 +25,17 @@ export function PrintDeskSector() {
   const [orderTicket, setOrderTicket] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Print Desk parameters
+  // Print Desk parameters (₹ INR)
   const RATES = {
-    bw: 0.10, // $0.10 per B&W page
-    color: 0.50, // $0.50 per Color page
+    bw: 2, // ₹2 per B&W page
+    color: 5, // ₹5 per Color page
     paper: {
-      '75': 0.00, // Standard is free
-      '100': 0.05, // Premium (+0.05)
-      '200': 0.15, // Cardboard (+0.15)
+      '75': 0, // Standard is free
+      '100': 1, // Premium (+₹1)
+      '200': 3, // Cardboard (+₹3)
     },
-    lamination: 1.50,
-    binding: 2.00,
+    lamination: 30, // ₹30 flat
+    binding: 40, // ₹40 flat
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -127,8 +128,17 @@ export function PrintDeskSector() {
 
   const handleGenerateTicket = () => {
     if (printJobs.length === 0) return;
-    const ticketId = `OMNI-PRINT-${Math.floor(100000 + Math.random() * 900000)}`;
+    const ticketId = generatePrintOrderId();
     setOrderTicket(ticketId);
+
+    // Save to localStorage for admin dashboard
+    savePrintOrder({
+      id: ticketId,
+      timestamp: Date.now(),
+      jobs: printJobs,
+      totalCost: calculateTotalCost(),
+      status: 'pending',
+    });
   };
 
   return (
@@ -244,7 +254,7 @@ export function PrintDeskSector() {
                   <span>Configuration & Pricing</span>
                   {printJobs.length > 0 && (
                     <span className="text-blue-400 text-sm font-mono font-bold bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
-                      Est. Total: ${calculateTotalCost().toFixed(2)}
+                      Est. Total: ₹{calculateTotalCost().toFixed(0)}
                     </span>
                   )}
                 </CardTitle>
@@ -262,7 +272,7 @@ export function PrintDeskSector() {
                           <span className="text-xs text-blue-400 font-medium block truncate max-w-[200px]">
                             {idx + 1}. {job.name}
                           </span>
-                          <span className="text-xs text-white font-mono">${calculateJobCost(job).toFixed(2)}</span>
+                          <span className="text-xs text-white font-mono">₹{calculateJobCost(job).toFixed(0)}</span>
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
@@ -327,7 +337,7 @@ export function PrintDeskSector() {
                               onChange={(e) => updateJobOption(idx, 'lamination', e.target.checked)}
                               className="rounded border-white/10 bg-white/5 accent-blue-500"
                             />
-                            <span>Lamination (+ $1.50)</span>
+                            <span>Lamination (+ ₹30)</span>
                           </label>
                           <label className="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer">
                             <input
@@ -336,7 +346,7 @@ export function PrintDeskSector() {
                               onChange={(e) => updateJobOption(idx, 'binding', e.target.checked)}
                               className="rounded border-white/10 bg-white/5 accent-blue-500"
                             />
-                            <span>Spiral Binding (+ $2.00)</span>
+                            <span>Spiral Binding (+ ₹40)</span>
                           </label>
                         </div>
                       </div>
@@ -378,7 +388,12 @@ export function PrintDeskSector() {
 
                     <div className="p-3 bg-white rounded-xl shadow-lg shrink-0">
                       <QRCodeSVG
-                        value={orderTicket}
+                        value={JSON.stringify({
+                          id: orderTicket,
+                          jobs: printJobs.length,
+                          total: `₹${calculateTotalCost().toFixed(0)}`,
+                          shop: 'PKG Shop'
+                        })}
                         size={120}
                         bgColor="#ffffff"
                         fgColor="#030303"
@@ -390,8 +405,8 @@ export function PrintDeskSector() {
               </CardContent>
               
               <CardFooter className="text-xs text-gray-500 border-t border-white/5 mt-4 pt-4 flex justify-between">
-                <span>Color Rate: $0.50/page</span>
-                <span>B&W Rate: $0.10/page</span>
+                <span>Color Rate: ₹5/page</span>
+                <span>B&W Rate: ₹2/page</span>
               </CardFooter>
             </Card>
           </div>

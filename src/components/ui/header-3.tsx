@@ -27,6 +27,7 @@ import {
 	Clock,
 	Sun,
 	Moon,
+	Lock,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -77,7 +78,7 @@ export function Header({ theme, toggleTheme }: { theme: 'light' | 'dark'; toggle
 					<a href="#" className="flex items-center gap-2 hover:opacity-90 font-bold tracking-wide">
 						<Layers className="size-6 text-blue-500 animate-pulse-slow" />
 						<span className={cn(theme === 'light' ? 'text-slate-800' : 'text-white', 'text-base font-bold')}>
-							OMNIHUB <span className="text-blue-500 font-mono text-xs">3D</span>
+							PKG <span className="text-blue-500 font-mono text-xs">Shop</span>
 						</span>
 					</a>
 					
@@ -154,6 +155,12 @@ export function Header({ theme, toggleTheme }: { theme: 'light' | 'dark'; toggle
 					<Button size="sm" asChild>
 						<a href="#cyberconsole">Book PC Slot</a>
 					</Button>
+					{/* Admin Access — subtle icon for shopkeeper */}
+					<Button variant="ghost" size="icon" asChild className={cn("rounded-full h-9 w-9", theme === 'light' ? 'hover:bg-slate-100 text-slate-400 hover:text-slate-700' : 'hover:bg-white/5 text-gray-600 hover:text-gray-300')} aria-label="Admin Dashboard">
+						<a href="/admin">
+							<Lock className="size-4" />
+						</a>
+					</Button>
 				</div>
 				
 				<div className="flex items-center gap-2 md:hidden">
@@ -203,6 +210,12 @@ export function Header({ theme, toggleTheme }: { theme: 'light' | 'dark'; toggle
 					</Button>
 					<Button className="w-full" onClick={() => setOpen(false)} asChild>
 						<a href="#cyberconsole">Terminal Matrix</a>
+					</Button>
+					<Button variant="ghost" className="w-full text-gray-500 hover:text-white" onClick={() => setOpen(false)} asChild>
+						<a href="/admin" className="flex items-center justify-center gap-2">
+							<Lock className="size-3.5" />
+							<span>Admin Panel</span>
+						</a>
 					</Button>
 				</div>
 			</MobileMenu>
