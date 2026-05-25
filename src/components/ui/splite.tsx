@@ -6,20 +6,18 @@ const Spline = lazy(() => import('@splinetool/react-spline'))
 interface SplineSceneProps {
   scene: string
   className?: string
+  onLoad?: () => void
 }
 
-export function SplineScene({ scene, className }: SplineSceneProps) {
+export function SplineScene({ scene, className, onLoad }: SplineSceneProps) {
   return (
     <Suspense 
-      fallback={
-        <div className="w-full h-full flex items-center justify-center bg-black/20 backdrop-blur-md min-h-[300px]">
-          <span className="loader"></span>
-        </div>
-      }
+      fallback={null}
     >
       <Spline
         scene={scene}
         className={className}
+        onLoad={onLoad}
       />
     </Suspense>
   )

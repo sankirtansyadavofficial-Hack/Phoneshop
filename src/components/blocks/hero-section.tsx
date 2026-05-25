@@ -11,6 +11,7 @@ import { BlueStarsBackground } from "@/components/ui/blue-stars-background";
 export function HeroSection({ theme }: { theme: 'light' | 'dark' }) {
   const [webglSupported, setWebglSupported] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+  const [splineLoaded, setSplineLoaded] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
   // WebGL Support check
@@ -73,20 +74,41 @@ export function HeroSection({ theme }: { theme: 'light' | 'dark' }) {
       {webglSupported ? (
         <>
           {/* ============================================================
-             FULL-VIEWPORT 3D ROBOT — Takes the entire background
+             PROGRESSIVE 3D LOAD SYSTEM:
+             Instant high-resolution static placeholder cross-fades into
+             the interactive 3D robot once Spline is fully downloaded.
              ============================================================ */}
+          
+          {/* 1. Instant static 3D robot placeholder */}
           <div
-            className="absolute inset-0 w-full h-full z-0 pointer-events-auto"
+            className={cn(
+              "absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-1000 z-0",
+              splineLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
+            )}
+            style={{
+              backgroundImage: `url('/src/assets/robot_placeholder.png')`,
+              transform: `scale(${robotScale})`,
+              transformOrigin: 'center center',
+              willChange: 'transform',
+            }}
+          />
+
+          {/* 2. Interactive 3D Spline scene container (Fades in smoothly) */}
+          <div
+            className={cn(
+              "absolute inset-0 w-full h-full pointer-events-auto transition-opacity duration-1000 z-0",
+              splineLoaded ? "opacity-100" : "opacity-0"
+            )}
             style={{
               transform: `scale(${robotScale})`,
               transformOrigin: 'center center',
-              transition: 'transform 0.1s linear',
               willChange: 'transform',
             }}
           >
             <SplineScene 
               scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
               className="w-full h-full"
+              onLoad={() => setSplineLoaded(true)}
             />
           </div>
 
