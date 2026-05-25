@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import { ShaderBackground } from '@/components/ui/animated-shader-background';
 
 type LinkItem = {
 	title: string;
