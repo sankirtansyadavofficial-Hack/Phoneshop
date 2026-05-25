@@ -62,7 +62,17 @@ export function Header({ theme, toggleTheme }: { theme: 'light' | 'dark'; toggle
 				'bg-transparent border-transparent py-4': !scrolled,
 			})}
 		>
-			<ShaderBackground className="absolute inset-0 w-full h-full pointer-events-none touch-none" />
+			{/* High-end 100% performance-free gold/orange cosmic gradient navbar background */}
+			{scrolled && (
+				<div 
+					className={cn(
+						"absolute inset-0 pointer-events-none transition-all duration-500 z-0",
+						theme === 'dark' 
+							? "bg-[radial-gradient(circle_at_30%_50%,rgba(249,115,22,0.12),transparent_50%),radial-gradient(circle_at_70%_50%,rgba(251,191,36,0.08),transparent_60%)] bg-[#030303]" 
+							: "bg-[radial-gradient(circle_at_30%_50%,rgba(249,115,22,0.06),transparent_40%),radial-gradient(circle_at_70%_50%,rgba(251,191,36,0.04),transparent_50%)] bg-[#f8fafc]"
+					)}
+				/>
+			)}
 			<nav className="relative z-10 mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-6">
 				<div className="flex items-center gap-6">
 					<a href="#" className="flex items-center gap-2 hover:opacity-90 font-bold tracking-wide">

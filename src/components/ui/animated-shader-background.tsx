@@ -29,7 +29,7 @@ float noise(in vec2 p) {
 
 float fbm(vec2 p) {
   float t=.0, a=1.; mat2 m=mat2(1.,-.5,.2,1.2);
-  for (int i=0; i<5; i++) {
+  for (int i=0; i<3; i++) {
     t+=a*noise(p);
     p*=2.*m;
     a*=.5;
@@ -53,7 +53,7 @@ void main(void) {
   vec3 col=vec3(0);
   float bg=clouds(vec2(st.x+T*.5,-st.y));
   uv*=1.-.3*(sin(T*.2)*.5+.5);
-  for (float i=1.; i<12.; i++) {
+  for (float i=1.; i<6.; i++) {
     uv+=.1*cos(i*vec2(.1+.01*i, .8)+i*i+T*.5+.1*uv.x);
     vec2 p=uv;
     float d=length(p);

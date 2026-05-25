@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [scrolled, setScrolled] = useState(false);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -29,6 +30,13 @@ function App() {
   useEffect(() => {
     // default setup class dark on root
     document.documentElement.classList.add('dark');
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 100);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
@@ -38,7 +46,7 @@ function App() {
     )}>
       
       {/* 1. Futuristic Three.js Cosmic Shader Background (Flows globally beneath everything) */}
-      {theme === 'dark' && <ShaderBackground />}
+      {theme === 'dark' && scrolled && <ShaderBackground />}
 
       {/* 2. Premium Sticky Glassmorphic Navigation Menu */}
       <Header theme={theme} toggleTheme={toggleTheme} />
