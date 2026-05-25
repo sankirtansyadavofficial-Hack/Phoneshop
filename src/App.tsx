@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/ui/header-3';
 import { ShaderBackground } from '@/components/ui/animated-shader-background';
-import { HeroSection } from '@/components/blocks/hero-section';
+import { ScrollExplode } from '@/components/blocks/scroll-explode';
 import SectionWithMockup from '@/components/blocks/section-with-mockup';
 import { ShowroomSector } from '@/components/showroom/showroom-sector';
 import { PrintDeskSector } from '@/components/printdesk/printdesk-sector';
@@ -51,9 +51,9 @@ function App() {
       {/* 2. Premium Sticky Glassmorphic Navigation Menu */}
       <Header theme={theme} toggleTheme={toggleTheme} />
 
-      {/* 3. Hero Landing Panel (Immersive Spline 3D shop or CSS fallback layout) */}
+      {/* 3. Hero: Scroll-linked phone explode animation */}
       <div className="relative z-10">
-        <HeroSection theme={theme} />
+        <ScrollExplode />
       </div>
 
       {/* 4. Showcase Highlights Section using SectionWithMockup */}
