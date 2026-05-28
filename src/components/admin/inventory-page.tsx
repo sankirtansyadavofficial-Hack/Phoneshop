@@ -20,6 +20,9 @@ import {
   ChevronDown,
   Target,
   Clock,
+  ImageIcon,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import {
   getAllInventory,
@@ -342,16 +345,127 @@ function RecordSaleForm({ inventory, onSave, onClose }: { inventory: InventoryIt
   );
 }
 
-// ─── Import Data Modal Content ───────────────────────────────────────────────
+// ─── Import Data Modal Content (Enhanced with File Upload + Photo OCR) ───────
+
+type ImportMode = 'text' | 'file' | 'photo';
 
 function ImportDataForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
+  const [mode, setMode] = useState<ImportMode>('file');
   const [rawText, setRawText] = useState('');
   const [preview, setPreview] = useState<InventoryItem[]>([]);
   const [imported, setImported] = useState<{ added: number; updated: number } | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const [ocrError, setOcrError] = useState('');
+
+  const inputClass = 'w-full bg-white/[0.05] border border-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all font-mono resize-none';
+
+  // ─── Read text/CSV/JSON files ────────────────────────────────────────────
+  const handleFileRead = (file: File) => {
+    setFileName(file.name);
+    setProcessing(true);
+    setProcessingMessage(`Reading ${file.name}...`);
+    setOcrError('');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setRawText(text);
+      const parsed = parseImportData(text);
+      setPreview(parsed);
+      setProcessing(false);
+      if (parsed.length === 0) {
+        setOcrError('Could not parse any items from this file. Check the format.');
+      }
+    };
+    reader.onerror = () => {
+      setProcessing(false);
+      setOcrError('Failed to read file. Try again.');
+    };
+    reader.readAsText(file);
+  };
+
+  // ─── OCR: Read image with Tesseract.js ───────────────────────────────────
+  const handleImageOCR = async (file: File) => {
+    setFileName(file.name);
+    setProcessing(true);
+    setProcessingMessage('Analyzing image with AI OCR...');
+    setOcrError('');
+    setPreview([]);
+
+    try {
+      const Tesseract = await import('tesseract.js');
+      setProcessingMessage('Extracting text from image...');
+
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: (m: { status: string; progress: number }) => {
+          if (m.status === 'recognizing text') {
+            setProcessingMessage(`OCR Processing... ${Math.round(m.progress * 100)}%`);
+          }
+        },
+      });
+
+      const extractedText = result.data.text;
+      setRawText(extractedText);
+      setProcessingMessage('Parsing extracted data...');
+
+      // Try to parse the OCR text
+      const parsed = parseImportData(extractedText);
+
+      if (parsed.length > 0) {
+        setPreview(parsed);
+      } else {
+        // If structured parse fails, show the raw text for manual editing
+        setOcrError(
+          'OCR extracted text but could not auto-parse it into inventory format. You can edit the extracted text below and try "Parse & Preview" again.'
+        );
+      }
+      setProcessing(false);
+    } catch {
+      setProcessing(false);
+      setOcrError('OCR processing failed. Try a clearer image or use text/file upload instead.');
+    }
+  };
+
+  // ─── File input handler ──────────────────────────────────────────────────
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (mode === 'photo') {
+      handleImageOCR(file);
+    } else {
+      handleFileRead(file);
+    }
+  };
+
+  // ─── Drag & Drop handlers ───────────────────────────────────────────────
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith('image/');
+    if (isImage) {
+      setMode('photo');
+      handleImageOCR(file);
+    } else {
+      setMode('file');
+      handleFileRead(file);
+    }
+  };
 
   const handleParse = () => {
     const parsed = parseImportData(rawText);
     setPreview(parsed);
+    if (parsed.length === 0) {
+      setOcrError('No items could be parsed. Check the data format.');
+    } else {
+      setOcrError('');
+    }
   };
 
   const handleImport = () => {
@@ -363,33 +477,187 @@ function ImportDataForm({ onSave, onClose }: { onSave: () => void; onClose: () =
       setImported(null);
       setPreview([]);
       setRawText('');
+      setFileName('');
       onClose();
     }, 2000);
   };
 
+  const modes: { key: ImportMode; label: string; icon: React.ReactNode }[] = [
+    { key: 'file', label: 'Upload File', icon: <FileText className="w-3.5 h-3.5" /> },
+    { key: 'photo', label: 'Scan Photo', icon: <ImageIcon className="w-3.5 h-3.5" /> },
+    { key: 'text', label: 'Paste Text', icon: <Upload className="w-3.5 h-3.5" /> },
+  ];
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
-          Paste CSV, JSON, or tabular data
-        </label>
-        <textarea
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-          rows={8}
-          placeholder={`model, category, variant, cost, price, qty\niPhone 15, Smartphones, 128GB Black, 45000, 52000, 10\nSamsung S24, Smartphones, 256GB Blue, 38000, 45000, 8`}
-          className="w-full bg-white/[0.05] border border-white/10 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition-all font-mono resize-none"
-        />
+      {/* Mode Tabs */}
+      <div className="flex gap-2 bg-white/[0.02] border border-white/[0.06] rounded-xl p-1">
+        {modes.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => { setMode(m.key); setOcrError(''); setPreview([]); setFileName(''); }}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+              mode === m.key
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            {m.icon} {m.label}
+          </button>
+        ))}
       </div>
 
-      <button
-        onClick={handleParse}
-        disabled={!rawText.trim()}
-        className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium rounded-xl hover:bg-indigo-500/20 disabled:opacity-40 transition-all"
-      >
-        <Search className="w-4 h-4" /> Parse & Preview
-      </button>
+      {/* Processing Overlay */}
+      {processing && (
+        <div className="flex flex-col items-center justify-center py-12 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+          <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-3" />
+          <p className="text-sm text-white font-medium">{processingMessage}</p>
+          <p className="text-[11px] text-gray-500 mt-1">This may take a moment...</p>
+        </div>
+      )}
 
+      {/* ─── File Upload Mode ───────────────────────────────────────────── */}
+      {mode === 'file' && !processing && (
+        <>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`relative flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-2xl transition-all cursor-pointer group ${
+              dragOver
+                ? 'border-blue-500/60 bg-blue-500/[0.06]'
+                : 'border-white/10 hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.03]'
+            }`}
+            onClick={() => document.getElementById('file-upload-input')?.click()}
+          >
+            <div className={`p-3 rounded-xl mb-3 transition-all ${
+              dragOver ? 'bg-blue-500/20' : 'bg-white/[0.04] group-hover:bg-white/[0.06]'
+            }`}>
+              <Upload className={`w-6 h-6 ${dragOver ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
+            </div>
+            <p className="text-sm text-white font-medium">
+              {fileName || 'Drop files here or click to browse'}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">
+              Supports CSV, JSON, TXT files
+            </p>
+            <input
+              id="file-upload-input"
+              type="file"
+              accept=".csv,.json,.txt,.tsv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+          {fileName && !preview.length && (
+            <button onClick={handleParse} disabled={!rawText.trim()} className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium rounded-xl hover:bg-indigo-500/20 disabled:opacity-40 transition-all">
+              <Search className="w-4 h-4" /> Re-parse Data
+            </button>
+          )}
+        </>
+      )}
+
+      {/* ─── Photo / Image OCR Mode ─────────────────────────────────────── */}
+      {mode === 'photo' && !processing && (
+        <>
+          <div className="bg-gradient-to-r from-purple-500/[0.05] to-blue-500/[0.05] border border-purple-500/15 rounded-xl p-4 text-sm">
+            <p className="text-purple-400 font-medium flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" /> AI-Powered Photo Import
+            </p>
+            <p className="text-gray-400 mt-1 text-xs leading-relaxed">
+              Upload a photo of your daily sales list, product inventory sheet, or any handwritten/printed product data. 
+              The AI will extract text using OCR and convert it into inventory data.
+            </p>
+          </div>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`relative flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-2xl transition-all cursor-pointer group ${
+              dragOver
+                ? 'border-purple-500/60 bg-purple-500/[0.06]'
+                : 'border-white/10 hover:border-purple-500/30 bg-white/[0.02] hover:bg-white/[0.03]'
+            }`}
+            onClick={() => document.getElementById('photo-upload-input')?.click()}
+          >
+            <div className={`p-3 rounded-xl mb-3 transition-all ${
+              dragOver ? 'bg-purple-500/20' : 'bg-purple-500/[0.06] group-hover:bg-purple-500/10'
+            }`}>
+              <ImageIcon className={`w-6 h-6 ${dragOver ? 'text-purple-400' : 'text-purple-500 group-hover:text-purple-400'}`} />
+            </div>
+            <p className="text-sm text-white font-medium">
+              {fileName || 'Drop photo here or click to upload'}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">
+              JPG, PNG, WEBP — photos of product lists, invoices, handwritten notes
+            </p>
+            <input
+              id="photo-upload-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/bmp"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+        </>
+      )}
+
+      {/* ─── Paste Text Mode ────────────────────────────────────────────── */}
+      {mode === 'text' && !processing && (
+        <>
+          <div>
+            <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-1.5">
+              Paste CSV, JSON, or tabular data
+            </label>
+            <textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              rows={8}
+              placeholder={`model, category, variant, cost, price, qty\niPhone 15, Smartphones, 128GB Black, 45000, 52000, 10\nSamsung S24, Smartphones, 256GB Blue, 38000, 45000, 8`}
+              className={inputClass}
+            />
+          </div>
+          <button
+            onClick={handleParse}
+            disabled={!rawText.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium rounded-xl hover:bg-indigo-500/20 disabled:opacity-40 transition-all"
+          >
+            <Search className="w-4 h-4" /> Parse & Preview
+          </button>
+        </>
+      )}
+
+      {/* ─── OCR Extracted Text (editable fallback) ─────────────────────── */}
+      {mode === 'photo' && !processing && rawText && !preview.length && (
+        <div className="space-y-3">
+          <label className="block text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+            Extracted Text (edit if needed)
+          </label>
+          <textarea
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            rows={6}
+            className={inputClass}
+          />
+          <button
+            onClick={handleParse}
+            disabled={!rawText.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium rounded-xl hover:bg-indigo-500/20 disabled:opacity-40 transition-all"
+          >
+            <Search className="w-4 h-4" /> Parse & Preview
+          </button>
+        </div>
+      )}
+
+      {/* ─── Error Message ──────────────────────────────────────────────── */}
+      {ocrError && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-sm text-amber-400">
+          <p className="font-medium">⚠ {ocrError}</p>
+        </div>
+      )}
+
+      {/* ─── Preview Table ──────────────────────────────────────────────── */}
       {preview.length > 0 && !imported && (
         <div className="space-y-3">
           <p className="text-sm text-emerald-400 font-medium">✓ {preview.length} item(s) parsed successfully</p>
@@ -417,15 +685,24 @@ function ImportDataForm({ onSave, onClose }: { onSave: () => void; onClose: () =
               </tbody>
             </table>
           </div>
-          <button
-            onClick={handleImport}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
-          >
-            <Check className="w-4 h-4" /> Confirm Import ({preview.length} items)
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleImport}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-emerald-500/20 transition-all"
+            >
+              <Check className="w-4 h-4" /> Confirm Import ({preview.length} items)
+            </button>
+            <button
+              onClick={() => { setPreview([]); setOcrError(''); }}
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white rounded-xl hover:bg-white/[0.05] transition-all"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
+      {/* ─── Import Success ─────────────────────────────────────────────── */}
       {imported && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-sm text-emerald-400">
           <p className="font-semibold">✓ Import Complete</p>
