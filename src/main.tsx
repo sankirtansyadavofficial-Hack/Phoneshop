@@ -6,6 +6,7 @@ import App from './App.tsx'
 import LoginPage from './components/admin/login-page.tsx'
 import AdminLayout from './components/admin/admin-layout.tsx'
 import DashboardPage from './components/admin/dashboard-page.tsx'
+import { InventoryPage } from './components/admin/inventory-page.tsx'
 import { PrintOrdersPage } from './components/admin/print-orders-page.tsx'
 import { ShowroomOrdersPage } from './components/admin/showroom-orders-page.tsx'
 import { TerminalBookingsPage } from './components/admin/terminal-bookings-page.tsx'
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
           <Route path="print-orders" element={<PrintOrdersPage />} />
           <Route path="showroom" element={<ShowroomOrdersPage />} />
           <Route path="showroom-orders" element={<Navigate to="/admin/showroom" replace />} />

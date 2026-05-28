@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  BarChart3,
 } from 'lucide-react';
 import { isAdminAuthenticated, setAdminSession } from '@/lib/store';
 
@@ -29,6 +30,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+  { label: 'Inventory', path: '/admin/inventory', icon: BarChart3 },
   { label: 'Print Orders', path: '/admin/print-orders', icon: Printer },
   { label: 'Showroom', path: '/admin/showroom', icon: ShoppingBag },
   { label: 'Terminals', path: '/admin/terminals', icon: Monitor },

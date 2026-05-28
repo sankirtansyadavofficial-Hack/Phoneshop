@@ -89,6 +89,58 @@ export interface DashboardStats {
   }>;
 }
 
+// ─── Inventory / OptiStock Types ─────────────────────────────────────────────
+
+export interface InventoryItem {
+  sku: string;
+  model: string;
+  category: string; // e.g. 'Smartphones', 'Headphones', 'Cables'
+  variant: string;  // e.g. '128GB Black', 'Type-C 1m'
+  costPrice: number;
+  sellingPrice: number;
+  currentStock: number;
+  initialStock: number;
+  reorderPoint: number; // minimum before restock
+  leadTimeDays: number; // days to receive restock
+  safetyStock: number;
+  lastRestocked: number; // timestamp
+  addedAt: number;
+}
+
+export interface SalesRecord {
+  id: string;
+  sku: string;
+  model: string;
+  variant: string;
+  unitsSold: number;
+  revenue: number;
+  timestamp: number;
+  date: string; // YYYY-MM-DD for grouping
+}
+
+export type StockStatus = 'CRITICAL' | 'WARNING' | 'STABLE' | 'OUT_OF_STOCK';
+
+export interface StockAnalysis {
+  sku: string;
+  model: string;
+  variant: string;
+  currentStock: number;
+  dailyVelocity: number;
+  timeToExhaustion: number; // days
+  status: StockStatus;
+  reorderQty: number;
+  reorderReason: string;
+}
+
+export interface EODReport {
+  date: string;
+  totalRevenue: number;
+  totalUnitsSold: number;
+  topModel: { model: string; units: number } | null;
+  soldOutItems: string[];
+  stockAnalysis: StockAnalysis[];
+}
+
 // ─── Storage Keys ────────────────────────────────────────────────────────────
 
 const KEYS = {
@@ -98,6 +150,8 @@ const KEYS = {
   ADMIN_CREDENTIALS: 'pkg_admin_credentials',
   ADMIN_SESSION: 'pkg_admin_session',
   SHOP_SETTINGS: 'pkg_shop_settings',
+  INVENTORY: 'pkg_inventory',
+  SALES_LOG: 'pkg_sales_log',
 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -340,6 +394,8 @@ export function exportAllData(): string {
     printOrders: getAllPrintOrders(),
     showroomInquiries: getAllShowroomInquiries(),
     terminalBookings: getAllTerminalBookings(),
+    inventory: getAllInventory(),
+    salesLog: getAllSalesRecords(),
     settings: getShopSettings(),
     exportedAt: new Date().toISOString(),
   }, null, 2);
@@ -349,6 +405,8 @@ export function clearAllData(): void {
   localStorage.removeItem(KEYS.PRINT_ORDERS);
   localStorage.removeItem(KEYS.SHOWROOM_INQUIRIES);
   localStorage.removeItem(KEYS.TERMINAL_BOOKINGS);
+  localStorage.removeItem(KEYS.INVENTORY);
+  localStorage.removeItem(KEYS.SALES_LOG);
 }
 
 // ─── ID Generators ───────────────────────────────────────────────────────────
@@ -363,4 +421,269 @@ export function generateShowroomInquiryId(): string {
 
 export function generateTerminalBookingId(): string {
   return `PKG-TERM-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+export function generateSKU(): string {
+  return `SKU-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+// ─── Inventory CRUD ──────────────────────────────────────────────────────────
+
+export function getAllInventory(): InventoryItem[] {
+  return getItem<InventoryItem[]>(KEYS.INVENTORY, []);
+}
+
+export function saveInventoryItem(item: InventoryItem): void {
+  const items = getAllInventory();
+  const idx = items.findIndex((i) => i.sku === item.sku);
+  if (idx >= 0) {
+    items[idx] = item;
+  } else {
+    items.push(item);
+  }
+  setItem(KEYS.INVENTORY, items);
+}
+
+export function updateInventoryStock(sku: string, newStock: number): void {
+  const items = getAllInventory();
+  const idx = items.findIndex((i) => i.sku === sku);
+  if (idx >= 0) {
+    items[idx].currentStock = newStock;
+    setItem(KEYS.INVENTORY, items);
+  }
+}
+
+export function deleteInventoryItem(sku: string): void {
+  const items = getAllInventory().filter((i) => i.sku !== sku);
+  setItem(KEYS.INVENTORY, items);
+}
+
+export function bulkImportInventory(newItems: InventoryItem[]): { added: number; updated: number } {
+  const existing = getAllInventory();
+  let added = 0;
+  let updated = 0;
+  for (const ni of newItems) {
+    const idx = existing.findIndex((e) => e.sku === ni.sku);
+    if (idx >= 0) {
+      existing[idx] = { ...existing[idx], ...ni, lastRestocked: Date.now() };
+      updated++;
+    } else {
+      existing.push({ ...ni, addedAt: Date.now(), lastRestocked: Date.now() });
+      added++;
+    }
+  }
+  setItem(KEYS.INVENTORY, existing);
+  return { added, updated };
+}
+
+// ─── Sales Log CRUD ──────────────────────────────────────────────────────────
+
+export function getAllSalesRecords(): SalesRecord[] {
+  return getItem<SalesRecord[]>(KEYS.SALES_LOG, []);
+}
+
+export function recordSale(sale: Omit<SalesRecord, 'id' | 'date'>): void {
+  const records = getAllSalesRecords();
+  const d = new Date(sale.timestamp);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  records.push({
+    ...sale,
+    id: `SALE-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    date: dateStr,
+  });
+  setItem(KEYS.SALES_LOG, records);
+
+  // Automatically deduct from inventory
+  updateInventoryStock(
+    sale.sku,
+    Math.max(0, (getAllInventory().find((i) => i.sku === sale.sku)?.currentStock ?? 0) - sale.unitsSold)
+  );
+}
+
+export function getTodaySales(): SalesRecord[] {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return getAllSalesRecords().filter((r) => r.date === dateStr);
+}
+
+// ─── Velocity Engine ─────────────────────────────────────────────────────────
+
+export function calcSalesVelocity(sku: string, days: number = 7): number {
+  const records = getAllSalesRecords();
+  const cutoff = Date.now() - days * 86400000;
+  const relevantSales = records.filter((r) => r.sku === sku && r.timestamp >= cutoff);
+  const totalUnits = relevantSales.reduce((sum, r) => sum + r.unitsSold, 0);
+  return totalUnits / days;
+}
+
+export function calcTimeToExhaustion(sku: string): number {
+  const item = getAllInventory().find((i) => i.sku === sku);
+  if (!item || item.currentStock <= 0) return 0;
+  const velocity = calcSalesVelocity(sku);
+  if (velocity <= 0) return 999; // No sales = effectively infinite
+  return item.currentStock / velocity;
+}
+
+export function getStockStatus(sku: string): StockStatus {
+  const item = getAllInventory().find((i) => i.sku === sku);
+  if (!item || item.currentStock <= 0) return 'OUT_OF_STOCK';
+  const tte = calcTimeToExhaustion(sku);
+  if (tte < 3) return 'CRITICAL';
+  if (tte < 7) return 'WARNING';
+  return 'STABLE';
+}
+
+// ─── JIT Restock Calculator ──────────────────────────────────────────────────
+
+export function calcReorderQuantity(sku: string): { qty: number; reason: string } {
+  const item = getAllInventory().find((i) => i.sku === sku);
+  if (!item) return { qty: 0, reason: 'Item not found' };
+
+  const velocity = calcSalesVelocity(sku);
+  if (velocity <= 0) return { qty: 0, reason: 'No recent sales — hold off restocking' };
+
+  const tte = calcTimeToExhaustion(sku);
+  const needed = Math.ceil((velocity * item.leadTimeDays) + item.safetyStock - item.currentStock);
+
+  if (needed <= 0) return { qty: 0, reason: `Sufficient stock for ${Math.round(tte)} days` };
+
+  return {
+    qty: needed,
+    reason: `Depletes in ${Math.round(tte)} days, lead time ${item.leadTimeDays} days`,
+  };
+}
+
+// ─── Full Stock Analysis ─────────────────────────────────────────────────────
+
+export function getFullStockAnalysis(): StockAnalysis[] {
+  const items = getAllInventory();
+  return items.map((item) => {
+    const velocity = calcSalesVelocity(item.sku);
+    const tte = calcTimeToExhaustion(item.sku);
+    const status = getStockStatus(item.sku);
+    const reorder = calcReorderQuantity(item.sku);
+
+    return {
+      sku: item.sku,
+      model: item.model,
+      variant: item.variant,
+      currentStock: item.currentStock,
+      dailyVelocity: Math.round(velocity * 100) / 100,
+      timeToExhaustion: Math.round(tte * 10) / 10,
+      status,
+      reorderQty: reorder.qty,
+      reorderReason: reorder.reason,
+    };
+  });
+}
+
+// ─── EOD Report Generator ────────────────────────────────────────────────────
+
+export function generateEODReport(): EODReport {
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todaySales = getTodaySales();
+
+  const totalRevenue = todaySales.reduce((s, r) => s + r.revenue, 0);
+  const totalUnitsSold = todaySales.reduce((s, r) => s + r.unitsSold, 0);
+
+  // Top model
+  const modelMap: Record<string, number> = {};
+  todaySales.forEach((r) => {
+    modelMap[r.model] = (modelMap[r.model] || 0) + r.unitsSold;
+  });
+  const topEntry = Object.entries(modelMap).sort((a, b) => b[1] - a[1])[0];
+  const topModel = topEntry ? { model: topEntry[0], units: topEntry[1] } : null;
+
+  // Sold out items
+  const soldOutItems = getAllInventory()
+    .filter((i) => i.currentStock <= 0)
+    .map((i) => `${i.model} ${i.variant}`);
+
+  return {
+    date: dateStr,
+    totalRevenue,
+    totalUnitsSold,
+    topModel,
+    soldOutItems,
+    stockAnalysis: getFullStockAnalysis(),
+  };
+}
+
+// ─── Universal Import Parser ─────────────────────────────────────────────────
+
+export function parseImportData(rawText: string): InventoryItem[] {
+  const lines = rawText.trim().split('\n').map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  // Try JSON first
+  try {
+    const parsed = JSON.parse(rawText);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    return arr.map(mapToInventoryItem).filter((i): i is InventoryItem => i !== null);
+  } catch {
+    // Not JSON
+  }
+
+  // Try CSV / TSV
+  const sep = lines[0].includes('\t') ? '\t' : ',';
+  const headers = lines[0].split(sep).map((h) => h.trim().toLowerCase().replace(/['"]/g, ''));
+
+  if (headers.length >= 2 && lines.length >= 2) {
+    const results: InventoryItem[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(sep).map((v) => v.trim().replace(/['"]/g, ''));
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+      const item = mapToInventoryItem(row);
+      if (item) results.push(item);
+    }
+    return results;
+  }
+
+  return [];
+}
+
+function mapToInventoryItem(obj: Record<string, unknown>): InventoryItem | null {
+  const s = (key: string): string => {
+    const aliases: Record<string, string[]> = {
+      model: ['model', 'product', 'product_name', 'product name', 'name', 'item', 'device'],
+      category: ['category', 'cat', 'type', 'product_type', 'product type'],
+      variant: ['variant', 'color', 'size', 'spec', 'configuration', 'config', 'storage'],
+      sku: ['sku', 'id', 'product_id', 'product id', 'item_code', 'code', 'barcode'],
+      currentStock: ['qty', 'quantity', 'stock', 'current_stock', 'current stock', 'available', 'in_stock', 'units'],
+      costPrice: ['cost', 'cost_price', 'cost price', 'purchase_price', 'buy_price', 'buying_price'],
+      sellingPrice: ['price', 'selling_price', 'selling price', 'sell_price', 'mrp', 'retail_price', 'retail price'],
+    };
+    const keys = aliases[key] || [key];
+    for (const k of keys) {
+      const val = obj[k] ?? obj[k.toUpperCase()] ?? obj[k.charAt(0).toUpperCase() + k.slice(1)];
+      if (val !== undefined && val !== null && val !== '') return String(val);
+    }
+    return '';
+  };
+
+  const model = s('model');
+  if (!model) return null;
+
+  const sku = s('sku') || generateSKU();
+  const stock = parseInt(s('currentStock')) || 0;
+  const cost = parseFloat(s('costPrice')) || 0;
+  const sell = parseFloat(s('sellingPrice')) || 0;
+
+  return {
+    sku,
+    model,
+    category: s('category') || 'General',
+    variant: s('variant') || '-',
+    costPrice: cost,
+    sellingPrice: sell,
+    currentStock: stock,
+    initialStock: stock,
+    reorderPoint: 5,
+    leadTimeDays: 3,
+    safetyStock: 2,
+    lastRestocked: Date.now(),
+    addedAt: Date.now(),
+  };
 }
